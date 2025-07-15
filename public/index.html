@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ticket Purchase</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    .error { color: red; }
+    .success { color: green; }
+  </style>
+</head>
+<body>
+  <h1>Buy Tickets</h1>
+  <form id="ticketForm">
+    <label>
+      Adult Tickets (£25 each):
+      <input type="number" name="adultTickets" min="0" value="0" required />
+    </label>
+    <br /><br />
+    <label>
+      Child Tickets (£15 each):
+      <input type="number" name="childTickets" min="0" value="0" />
+    </label>
+    <br /><br />
+    <label>
+      Infant Tickets (Free):
+      <input type="number" name="infantTickets" min="0" value="0" />
+    </label>
+    <br /><br />
+    <button type="submit">Purchase</button>
+  </form>
+
+  <div id="response" style="margin-top: 1.5rem;"></div>
+
+  <script>
+    const form = document.getElementById('ticketForm');
+    const responseDiv = document.getElementById('response');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault(); // prevent form reload
+
+      const formData = new FormData(form);
+      const data = {
+        adultTickets: formData.get('adultTickets'),
+        childTickets: formData.get('childTickets'),
+        infantTickets: formData.get('infantTickets')
+      };
+
+      try {
+        const res = await fetch('/purchase', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+
+        if (result.error) {
+          responseDiv.innerHTML = `<p class="error">${result.error}</p>`;
+        } else {
+          responseDiv.innerHTML = `
+            <h2 class="success">${result.message}</h2>
+            <p>Tickets: ${result.tickets.adult} Adult, ${result.tickets.child} Child, ${result.tickets.infant} Infant</p>
+            <p>Total Amount: £${result.totalAmount}</p>
+            <p>Seats Reserved: ${result.seatsReserved}</p>
+          `;
+          form.reset();
+        }
+      } catch (err) {
+        responseDiv.innerHTML = `<p class="error">Error submitting form. Please try again.</p>`;
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
