@@ -23,16 +23,18 @@ public class TicketServiceImplTest {
         doNothing().when(seatReservationService).reserveSeat(anyLong(), anyInt());
     }
     @Test
-    void oneAdultTwoInfantsIsAllowed() {
+    void noAdultOneChildOneInfantThrowsException() {
         long accountId = 1L;
 
-        TicketTypeRequest adult = new TicketTypeRequest(TicketTypeRequest.Type.ADULT, 1);
-        TicketTypeRequest infants = new TicketTypeRequest(TicketTypeRequest.Type.INFANT, 2);
+        TicketTypeRequest child = new TicketTypeRequest(TicketTypeRequest.Type.CHILD, 1);
+        TicketTypeRequest infant = new TicketTypeRequest(TicketTypeRequest.Type.INFANT, 1);
 
-        ticketService.purchaseTickets(accountId, adult, infants);
+        assertThrows(
+                InvalidPurchaseException.class,
+                () -> ticketService.purchaseTickets(accountId, child, infant)
+        );
 
-        verify(ticketPaymentService).makePayment(accountId, 25);
-        verify(seatReservationService).reserveSeat(accountId, 1);
+        verifyNoInteractions(ticketPaymentService, seatReservationService);
     }
 
     @Test
@@ -259,6 +261,30 @@ public class TicketServiceImplTest {
         TicketTypeRequest nullTypeRequest = new TicketTypeRequest(null, 1);
 
         assertThrows(InvalidPurchaseException.class, () -> ticketService.purchaseTickets(accountId, correctRequest, nullTypeRequest));
+        verifyNoInteractions(ticketPaymentService, seatReservationService);
+    }
+
+    @Test
+    void noTicketsProvidedThrowsException() {
+        long accountId = 1L;
+
+        assertThrows(
+                InvalidPurchaseException.class,
+                () -> ticketService.purchaseTickets(accountId)
+        );
+
+        verifyNoInteractions(ticketPaymentService, seatReservationService);
+    }
+
+    @Test
+    void nullTicketRequestThrowsException() {
+        long accountId = 1L;
+
+        assertThrows(
+                InvalidPurchaseException.class,
+                () -> ticketService.purchaseTickets(accountId, (TicketTypeRequest) null)
+        );
+
         verifyNoInteractions(ticketPaymentService, seatReservationService);
     }
 

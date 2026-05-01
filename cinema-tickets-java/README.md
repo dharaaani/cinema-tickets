@@ -1,8 +1,8 @@
 # Cinema Tickets – Ticket Service
 
-This project provides an implementation of the `TicketService` interface for the Cinema Tickets coding exercise.
+This project provides an implementation of the `TicketService` interface.
 
-The service validates ticket purchase requests, calculates the correct payment amount, and reserves seats using the provided third‑party services, while enforcing all required business rules.
+The service validates ticket purchase requests, calculates the payment amount, and reserves seats using the provided third‑party services, while enforcing all required business rules.
 
 ## Technology Stack
 
@@ -10,7 +10,10 @@ The service validates ticket purchase requests, calculates the correct payment a
 *   **Maven**
 *   **JUnit 5**
 *   **Mockito**
-*   Docker & GitHub Actions for build verification
+*   **JaCoCo** (code coverage)
+*   **GitHub Actions** (CI)
+*   **Docker** (optional)
+
 
 ### Prerequisites
 
@@ -25,6 +28,10 @@ From the Java project directory:
 mvn clean test
 ```
 
+*   Compiles the project
+*   Runs all unit tests
+*   Generates a JaCoCo code‑coverage report
+
 
 ## Business Rules Implemented
 
@@ -35,6 +42,12 @@ mvn clean test
 | ADULT       | £25   | Yes           |
 | CHILD       | £15   | Yes           |
 | INFANT      | £0    | No            |
+
+### Ticket prices
+
+Ticket prices and limits are defined as constants to keep simple.
+
+In a production system, these values could be configured like properties files or environment variables to support pricing changes
 
 ### Rules
 
@@ -61,42 +74,101 @@ Examples of invalid scenarios:
 
 Validation occurs before any external services are invoked.
 
+## Design Decisions & Assumptions
 
-## Testing Approach
+### Assumptions
+
+*   Any account ID greater than zero is valid
+*   All valid accounts have sufficient funds
+*   The payment and seat reservation services are reliable and always succeed when called
+
+### Design Notes
+
+*   `TicketServiceImpl` focuses on orchestration and delegation
+*   All request validation and business rules are encapsulated in a dedicated validator
+*   Third‑party packages are not modified
+*   Domain validation errors are represented using a specific exception (`InvalidPurchaseException`)
+*   Exceptions are allowed to propagate intentionally (fail‑fast); no unnecessary `try/catch` blocks are used
+*   Ticket prices and limits are declared as constants for clarity; these could be externalised to configuration if required in future campaigns
+*   The solution deliberately avoids additional infrastructure (APIs, UI, containers beyond build support) to remain within scope
+
+## Development Approach (TDD)
+
+I approached this exercise using a test‑first mindset.
+
+I started by writing failing unit tests for the core business rules, such as:
+- Adult ticket requirement
+- Infant‑to‑adult ratio limits
+- Maximum ticket count
+- Seat allocation rules
+
+Then implemented the service and validation logic to satisfy those tests, adding further tests incrementally to cover edge cases and invalid input scenarios.
+
+### BDD
+
+Tests are named to describe behaviour and expected outcome.
+
+## Testing Strategy
+
+The solution was developed with a **test‑first mindset**, focusing on business rules and edge cases before implementation.
+
+### Testing approach
 
 *   All external services are mocked
 *   Unit tests cover:
     *   Valid purchase scenarios
-    *   Boundary conditions (e.g. infant limits, ticket limits)
+    *   Boundary conditions (ticket limits, infant limits)
     *   Defensive cases (nulls, invalid inputs)
-*   Tests verify:
+*   Tests explicitly verify:
     *   Correct payment amounts
-    *   Correct seat reservations
-    *   No external service interaction on invalid requests
+    *   Correct seat reservation counts
+    *   No interaction with external services for invalid requests
 
-The test suite is designed to clearly describe expected behaviour and edge cases.
-
-
-## Design Notes
-
-*   The `TicketServiceImpl` focuses on orchestration and validation
-*   Third‑party packages are not modified
-*   Business rules (prices and limits) are defined as constants to make them explicit and easy to change
-*   The implementation avoids unnecessary frameworks or infrastructure
-
-## Assumptions
-
-*   Any account ID greater than zero is valid
-*   All valid accounts have sufficient funds
-*   Payment and seat reservation services are reliable and succeed when called
+Test names are written to clearly describe expected behaviour.
 
 
-### GitHub Actions
+## Code Coverage (JaCoCo)
 
-A lightweight CI pipeline may be included to run the test suite on push and pull requests.
+JaCoCo is used to generate a code‑coverage report during the Maven test phase.
 
-### Docker
+Coverage is used as a **quality signal**, not a target metric, and helps ensure that:
 
-A minimal Dockerfile may be used to run the Maven build and tests in a clean environment.
+*   Core business rules are exercised
+*   Validation and edge cases are tested
+*   Failure paths are verified
 
-Both are optional and kept intentionally simple.
+The report is generated automatically at:
+
+    target/site/jacoco/index.html
+
+
+## Logging
+
+*   Logging is kept intentionally lightweight
+*   Validation and processing steps are logged at appropriate levels
+*   No sensitive data is logged
+*   Logging exists to support traceability, not as a control mechanism
+
+
+
+## Continuous Integration (GitHub Actions)
+
+A lightweight GitHub Actions workflow may be included to:
+
+*   Build the project
+*   Run the full test suite
+*   Verify the solution in a clean environment
+
+The pipeline mirrors the local `mvn test` workflow and introduces no additional behaviour.
+
+
+## Docker (Optional)
+
+A minimal Dockerfile may be provided to:
+
+*   Run the Maven build and test suite in a clean, reproducible environment
+*   Avoid differences between local and CI builds
+```bash
+    docker build -t cinema-tickets .
+```
+Docker is **not required** to use or understand the solution and is kept simple.
